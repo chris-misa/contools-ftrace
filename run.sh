@@ -20,7 +20,7 @@ TARGET_IPV4="127.0.0.1"
 
 B="--------"
 NATIVE_PING_CMD="$HOME/Dep/iputils/ping"
-CONTAI_PING_CMD="/iputils/ping"
+CONTAINER_PING_CMD="/iputils/ping"
 
 PING_ARGS="-i 0.5 -s 56" # arguments to hand to each invocation of ping
 PING_WAIT_CMD="sleep 5" # command to wait for ping measurement
@@ -32,11 +32,13 @@ PING_CONTAINER_NAME="ping-container"
 # Arguments to add to trace-cmd invoke
 TRACE_ARGS="-e *sendto -e *recvmsg --date"
 
-#  # Start ping container as daemon
-#  docker run --rm -itd \
-#    --entrypoint=/bin/bash \
-#    --name=$PING_CONTAINER_NAME \
-#    $PING_CONTAINER_IMAGE
+# Start ping container as service
+docker run --rm -itd \
+  --name=$PING_CONTAINER_NAME \
+  --entrypoint=/bin/bash \
+  $PING_CONTAINER_IMAGE
+
+# START RUNS LOOP
 
 # Native procedure
 echo $B Running native $B
@@ -56,4 +58,32 @@ $PAUSE_CMD
 kill $PING_PID
 echo "  killed ping"
 
-# docker stop $PING_CONTAINER_NAME
+# Container procedure
+echo $B Running container $B
+
+docker exec -d $PING_CONTAINER_NAME $CONTAINER_PING_CMD $PING_ARGS $TARGET_IPV4
+
+PING_PID=`ps -e | grep ping | sed -E "s/ *([0-9]+) .*/\1/"`
+echo "  running ping with pid: $PING_PID"
+$PAUSE_CMD
+
+trace-cmd record $TRACE_ARGS -P $PING_PID \
+  -o v4_container_${TARGET_IPV4}.dat &
+TRACE_PID=$!
+echo "  running trace-cmd record with pid: $TRACE_PID"
+
+$PING_WAIT_CMD
+
+kill -INT $TRACE_PID
+echo "  killed trace-cmd record"
+$PAUSE_CMD
+kill $PING_PID
+echo "  killed ping"
+
+# END RUNS LOOP
+
+docker stop $PING_CONTAINER_NAME
+echo "  killed ping"
+
+
+

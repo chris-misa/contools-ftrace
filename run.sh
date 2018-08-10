@@ -22,7 +22,7 @@ B="----------------"
 NATIVE_PING_CMD="$HOME/Dep/iputils/ping"
 CONTAINER_PING_CMD="/iputils/ping"
 
-PING_ARGS="-i 0.5 -s 56" # arguments to hand to each invocation of ping
+PING_ARGS="-D -i 0.5 -s 56" # arguments to hand to each invocation of ping
 PING_WAIT_CMD="sleep 5" # command to wait for ping measurement
 PAUSE_CMD="sleep 3"     # command to wait in between doing things
 

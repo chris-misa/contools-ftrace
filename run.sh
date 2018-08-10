@@ -16,15 +16,15 @@
 # where step (2) in the container run is a little more involved.
 #
 
-TARGET_IPV4="10.0.0.1"
+TARGET_IPV4="10.10.1.2"
 
 B="----------------"
-NATIVE_PING_CMD="$HOME/Dep/iputils/ping"
+NATIVE_PING_CMD="$(pwd)/iputils/ping"
 CONTAINER_PING_CMD="/iputils/ping"
 
 PING_ARGS="-D -i 0.5 -s 56" # arguments to hand to each invocation of ping
-PING_WAIT_CMD="sleep 5" # command to wait for ping measurement
-PAUSE_CMD="sleep 3"     # command to wait in between doing things
+PING_WAIT_CMD="sleep 600" # command to wait for ping measurement
+PAUSE_CMD="sleep 5"     # command to wait in between doing things
 
 PING_CONTAINER_IMAGE="chrismisa/contools:ping"
 PING_CONTAINER_NAME="ping-container"
@@ -33,7 +33,7 @@ PING_CONTAINER_NAME="ping-container"
 TRACE_ARGS="-e *sendto -e *recvmsg --date"
 
 # Argument to add to tcpdump invocations
-TCPDUMP_ARGS="-i wlp2s0 icmp or icmp6"
+TCPDUMP_ARGS="-i eno1d1 icmp or icmp6"
 
 # Start ping container as service
 docker run --rm -itd \
@@ -126,6 +126,13 @@ $PAUSE_CMD
 kill -INT $PING_PID
 echo "  killed ping"
 $PAUSE_CMD
+
+# Convert to canonical text forms
+echo $B Dumping to text $B
+tcpdump -tt -n -r v4_native_${TARGET_IPV4}.pcap > v4_native_${TARGET_IPV4}.tcpdump
+trace-cmd report -t -i v4_native_${TARGET_IPV4}.dat > v4_native_${TARGET_IPV4}.ftrace
+tcpdump -tt -n -r v4_container_${TARGET_IPV4}.pcap > v4_container_${TARGET_IPV4}.tcpdump
+trace-cmd report -t -i v4_container_${TARGET_IPV4}.dat > v4_container_${TARGET_IPV4}.ftrace
 
 # END RUNS LOOP
 

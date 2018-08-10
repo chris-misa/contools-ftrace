@@ -16,7 +16,7 @@
 # where step (2) in the container run is a little more involved.
 #
 
-TARGET_IPV4="127.0.0.1"
+TARGET_IPV4="10.0.0.1"
 
 B="----------------"
 NATIVE_PING_CMD="$HOME/Dep/iputils/ping"
@@ -33,7 +33,7 @@ PING_CONTAINER_NAME="ping-container"
 TRACE_ARGS="-e *sendto -e *recvmsg --date"
 
 # Argument to add to tcpdump invocations
-TCPDUMP_ARGS="-i wlp2s0"
+TCPDUMP_ARGS="-i wlp2s0 icmp or icmp6"
 
 # Start ping container as service
 docker run --rm -itd \
@@ -56,7 +56,7 @@ echo "  running ping with pid: $PING_PID"
 $PAUSE_CMD
 
 # Start tcpdump
-tcpdump $TCPDUMP_ARGS -w v4_native_${TARGET_IPV4}.pcap &
+tcpdump -w v4_native_${TARGET_IPV4}.pcap $TCPDUMP_ARGS &
 TCPDUMP_PID=$!
 echo "  running tcpdump with pid: $TCPDUMP_PID"
 $PAUSE_CMD
@@ -81,7 +81,7 @@ echo "  killed tcpdump"
 $PAUSE_CMD
 
 # Stop ping
-kill $PING_PID
+kill -INT $PING_PID
 echo "  killed ping"
 $PAUSE_CMD
 
@@ -98,7 +98,7 @@ echo "  running ping with pid: $PING_PID"
 $PAUSE_CMD
 
 # Start tcpdump
-tcpdump $TCPDUMP_ARGS -w v4_container_${TARGET_IPV4}.pcap &
+tcpdump -w v4_container_${TARGET_IPV4}.pcap $TCPDUMP_ARGS &
 TCPDUMP_PID=$!
 echo "  running tcpdump with pid: $TCPDUMP_PID"
 $PAUSE_CMD
@@ -123,7 +123,7 @@ echo "  killed tcpdump"
 $PAUSE_CMD
 
 # Stop ping
-kill $PING_PID
+kill -INT $PING_PID
 echo "  killed ping"
 $PAUSE_CMD
 

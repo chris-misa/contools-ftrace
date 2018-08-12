@@ -30,10 +30,16 @@ CONTAINER_PING_CMD="/iputils/ping"
 
 # Sequence of arguments to hand to each invocation of ping
 declare -A PING_ARG_SEQ=(
+  ["i0.5_s8"]="-D -i 0.5 -s 8" 
+  ["i0.5_s24"]="-D -i 0.5 -s 24" 
   ["i0.5_s56"]="-D -i 0.5 -s 56" 
+  ["i0.5_s120"]="-D -i 0.5 -s 120" 
+  ["i0.5_s248"]="-D -i 0.5 -s 248" 
+  ["i0.5_s504"]="-D -i 0.5 -s 504" 
+  ["i0.5_s1016"]="-D -i 0.5 -s 1016" 
 )
 
-PING_WAIT_CMD="sleep 20" # command to wait for ping measurement
+PING_WAIT_CMD="sleep 800" # command to wait for ping measurement
 PAUSE_CMD="sleep 5"     # command to wait in between doing things
 
 PING_CONTAINER_IMAGE="chrismisa/contools:ping"

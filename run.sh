@@ -18,6 +18,12 @@
 
 TARGET_IPV4="10.10.1.2"
 
+declare -a CONTAINER_TARGETS_IPV4=(
+  $TARGET_IPV4
+  "172.17.0.1"
+  "10.10.1.1"
+)
+
 B="----------------"
 NATIVE_PING_CMD="$(pwd)/iputils/ping"
 CONTAINER_PING_CMD="/iputils/ping"
@@ -27,7 +33,7 @@ declare -A PING_ARG_SEQ=(
   ["i0.5_s56"]="-D -i 0.5 -s 56" 
 )
 
-PING_WAIT_CMD="sleep 600" # command to wait for ping measurement
+PING_WAIT_CMD="sleep 20" # command to wait for ping measurement
 PAUSE_CMD="sleep 5"     # command to wait in between doing things
 
 PING_CONTAINER_IMAGE="chrismisa/contools:ping"
@@ -100,43 +106,52 @@ do
   echo "  killed ping"
   $PAUSE_CMD
 
+  # Dump text
+  echo $B Dumping to text $B
+  trace-cmd report -t -i v4_native_${TARGET_IPV4}_${file_sfx}.dat > v4_native_${TARGET_IPV4}_${file_sfx}.ftrace
+
   # # # # # # # # # # # # # # # 
   # Container procedure
   # # # # # # # # # # # # # # # 
-  echo $B Running container $B
+  for target in ${CONTAINER_TARGETS_IPV4[@]}
+  do
+    echo $B Running container at $target $B
 
-  # Start ping
-  docker exec $PING_CONTAINER_NAME $CONTAINER_PING_CMD $PING_ARGS $TARGET_IPV4 > v4_container_${TARGET_IPV4}_${file_sfx}.ping &
-  sleep 2
-  PING_PID=`ps -e | grep ping | sed -E "s/ *([0-9]+) .*/\1/"`
-  echo "  running ping with pid: $PING_PID"
-  $PAUSE_CMD
+    # Start ping
+    docker exec $PING_CONTAINER_NAME $CONTAINER_PING_CMD $PING_ARGS $target > v4_container_${target}_${file_sfx}.ping &
+    sleep 2
+    PING_PID=`ps -e | grep ping | sed -E "s/ *([0-9]+) .*/\1/"`
+    echo "  running ping with pid: $PING_PID"
+    $PAUSE_CMD
 
-  # Start ftrace
-  trace-cmd record $TRACE_ARGS -P $PING_PID \
-    -o v4_container_${TARGET_IPV4}_${file_sfx}.dat &
-  TRACE_PID=$!
-  echo "  running trace-cmd record with pid: $TRACE_PID"
+    # Start ftrace
+    trace-cmd record $TRACE_ARGS -P $PING_PID \
+      -o v4_container_${target}_${file_sfx}.dat &
+    TRACE_PID=$!
+    echo "  running trace-cmd record with pid: $TRACE_PID"
 
-  # Let the data accumulate
-  $PING_WAIT_CMD
+    # Let the data accumulate
+    $PING_WAIT_CMD
 
-  # Stop ftrace
-  kill -INT $TRACE_PID
-  echo "  killed trace-cmd record"
-  $PAUSE_CMD
+    # Stop ftrace
+    kill -INT $TRACE_PID
+    echo "  killed trace-cmd record"
+    $PAUSE_CMD
 
-  # Stop ping
-  kill -INT $PING_PID
-  echo "  killed ping"
-  $PAUSE_CMD
+    # Stop ping
+    kill -INT $PING_PID
+    echo "  killed ping"
+    $PAUSE_CMD
 
-  # Convert to canonical text forms
-  echo $B Dumping to text $B
-  trace-cmd report -t -i v4_native_${TARGET_IPV4}_${file_sfx}.dat > v4_native_${TARGET_IPV4}_${file_sfx}.ftrace
-  trace-cmd report -t -i v4_container_${TARGET_IPV4}_${file_sfx}.dat > v4_container_${TARGET_IPV4}_${file_sfx}.ftrace
+    # Dump text
+    echo $B Dumping to text $B
+    trace-cmd report -t -i v4_container_${target}_${file_sfx}.dat > v4_container_${target}_${file_sfx}.ftrace
+  done # END CONTAINER_TARGETS_IPV4 Loop
 
 done # END RUNS LOOP
+
+
+
 
 docker stop $PING_CONTAINER_NAME
 echo $B Stoped $PING_CONTAINER_NAME $B
